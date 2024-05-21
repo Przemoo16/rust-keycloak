@@ -1,4 +1,4 @@
-FROM rust:1.78-slim-buster AS deps
+FROM docker.io/rust:1.78-slim-buster AS deps
 
 WORKDIR /opt/app
 
@@ -34,7 +34,7 @@ COPY ./src ./src
 RUN cargo build --release
 
 
-FROM debian:12.5-slim
+FROM docker.io/debian:12.5-slim
 
 RUN apt-get update \
     && apt-get upgrade -y \

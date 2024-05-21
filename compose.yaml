@@ -1,11 +1,47 @@
 services:
-  auth:
-    image: keycloak/keycloak:24.0
+  db:
+    image: docker.io/postgres:15.7
+    ports:
+      - "5432:5432"
+    volumes:
+      - type: volume
+        source: db-data
+        target: /var/lib/postgresql/data
     environment:
-      - KEYCLOAK_ADMIN=admin
-      - KEYCLOAK_ADMIN_PASSWORD=admin
+      POSTGRES_PASSWORD: "${DB_PASSWORD}"
+      POSTGRES_USER: "${DB_USERNAME}"
+      POSTGRES_DB: "${DB_NAME}"
+    healthcheck:
+      test:
+        [
+          "CMD",
+          "pg_isready",
+          "--username",
+          "${DB_USERNAME}",
+          "--dbname",
+          "${DB_NAME}",
+        ]
+      interval: 2s
+      timeout: 3s
+      retries: 3
+      start_period: 5s
+
+  auth:
+    image: docker.io/keycloak/keycloak:24.0
+    environment:
+      KEYCLOAK_ADMIN: admin
+      KEYCLOAK_ADMIN_PASSWORD: admin
+      KC_DB: postgres
+      KC_DB_PASSWORD: "${DB_PASSWORD}"
+      KC_DB_USERNAME: "${DB_USERNAME}"
+      KC_DB_URL_DATABASE: "${DB_NAME}"
+      KC_DB_URL_HOST: db
+      KC_DB_URL_PORT: 5432
     ports:
       - "8080:8080"
+    depends_on:
+      db:
+        condition: service_healthy
     command: start-dev
 
   app:
@@ -19,6 +55,10 @@ services:
         source: ./app/src
         target: /opt/app/src
     depends_on:
-      - auth
+      db:
+        condition: service_healthy
+      auth:
+        condition: service_started
 
-
+volumes:
+  db-data:
