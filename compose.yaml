@@ -1,0 +1,24 @@
+services:
+  auth:
+    image: keycloak/keycloak:24.0
+    environment:
+      - KEYCLOAK_ADMIN=admin
+      - KEYCLOAK_ADMIN_PASSWORD=admin
+    ports:
+      - "8080:8080"
+    command: start-dev
+
+  app:
+    build:
+      context: ./app
+      target: dev
+    ports:
+      - "8000:3000"
+    volumes:
+      - type: bind
+        source: ./app/src
+        target: /opt/app/src
+    depends_on:
+      - auth
+
+
