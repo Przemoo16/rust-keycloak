@@ -12,6 +12,7 @@ mod state;
 #[tokio::main]
 async fn main() {
     let state = AppState::new();
+    tracing_subscriber::fmt::init();
     let app = Router::new()
         .nest("/", create_main_router())
         .nest("/auth", create_auth_router())

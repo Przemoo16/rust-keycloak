@@ -37,7 +37,12 @@ pub async fn exchange_code_for_token(
         ("redirect_uri", token_params.redirect_uri),
     ];
 
-    let res = http_client.post(&token_url).form(&params).send().await?;
+    let res = http_client
+        .post(&token_url)
+        .form(&params)
+        .send()
+        .await?
+        .error_for_status()?;
 
     let res_json = res.json::<TokenResponse>().await?;
     return Ok((res_json.access_token, res_json.refresh_token));

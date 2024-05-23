@@ -38,6 +38,9 @@ async fn callback(
     .await;
     match token_result {
         Ok((_access_token, _refresh_token)) => return Redirect::to("/protected").into_response(),
-        Err(_e) => return StatusCode::BAD_REQUEST.into_response(),
+        Err(e) => {
+            tracing::error!("Error when exchanging code for token: {}", e);
+            return (StatusCode::BAD_REQUEST, "Couldn't exchange code for token").into_response();
+        }
     }
 }
