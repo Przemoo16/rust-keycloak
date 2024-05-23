@@ -1,11 +1,21 @@
-use axum::{routing::get, Router};
+use crate::state::AppState;
+use axum::Router;
+
+use crate::api::auth::create_auth_router;
+use crate::api::main::create_main_router;
+
+mod api;
+mod config;
+mod services;
+mod state;
 
 #[tokio::main]
 async fn main() {
-    // build our application with a single route
-    let app = Router::new().route("/", get(|| async { "Hello, World!" }));
-
-    // run our app with hyper, listening globally on port 3000
+    let state = AppState::new();
+    let app = Router::new()
+        .nest("/", create_main_router())
+        .nest("/auth", create_auth_router())
+        .with_state(state);
     let listener = tokio::net::TcpListener::bind("0.0.0.0:3000").await.unwrap();
     axum::serve(listener, app).await.unwrap();
 }

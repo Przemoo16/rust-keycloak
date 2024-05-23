@@ -24,6 +24,7 @@ dependencies = [
  "axum",
  "openssl",
  "reqwest",
+ "serde",
  "tokio",
  "tracing",
  "tracing-subscriber",

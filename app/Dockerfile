@@ -16,8 +16,9 @@ FROM deps as dev
 
 EXPOSE 3000
 
+RUN cargo install cargo-watch
+
 RUN cargo build \
-    && cargo install cargo-watch \
     && rm -f ./target/debug/deps/app*
 
 COPY ./src ./src

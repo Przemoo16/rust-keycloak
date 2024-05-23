@@ -54,6 +54,8 @@ services:
       - type: bind
         source: ./app/src
         target: /opt/app/src
+    env_file:
+      - .env
     depends_on:
       db:
         condition: service_healthy
