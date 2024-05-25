@@ -38,7 +38,7 @@ services:
       KC_DB_URL_HOST: db
       KC_DB_URL_PORT: 5432
     ports:
-      - "8080:8080"
+      - "8080:80"
     depends_on:
       db:
         condition: service_healthy
@@ -49,7 +49,7 @@ services:
       context: ./app
       target: dev
     ports:
-      - "8000:3000"
+      - "8000:80"
     volumes:
       - type: bind
         source: ./app/src
