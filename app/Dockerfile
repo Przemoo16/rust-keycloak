@@ -14,7 +14,7 @@ COPY ./Cargo.toml ./Cargo.lock ./
 
 FROM deps as dev
 
-EXPOSE 3000
+EXPOSE 80
 
 RUN cargo install cargo-watch
 
@@ -41,7 +41,7 @@ RUN apt-get update \
     && apt-get upgrade -y \
     && rm -rf /var/lib/apt/lists/*
 
-EXPOSE 3000
+EXPOSE 80
 
 COPY --from=build /opt/app/target/release/app /usr/local/bin/app
 

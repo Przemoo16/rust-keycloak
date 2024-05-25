@@ -1,4 +1,41 @@
 services:
+  app:
+    build:
+      context: ./app
+      target: dev
+    volumes:
+      - type: bind
+        source: ./app/src
+        target: /opt/app/src
+    ports:
+      - "8000:80"
+    env_file:
+      - .env
+    depends_on:
+      db:
+        condition: service_healthy
+      auth:
+        condition: service_started
+
+  auth:
+    image: docker.io/keycloak/keycloak:24.0
+    ports:
+      - "8080:80"
+    environment:
+      KEYCLOAK_ADMIN: admin
+      KEYCLOAK_ADMIN_PASSWORD: admin
+      KC_HTTP_PORT: 80
+      KC_DB: postgres
+      KC_DB_PASSWORD: "${DB_PASSWORD}"
+      KC_DB_USERNAME: "${DB_USER}"
+      KC_DB_URL_DATABASE: "${DB_NAME}"
+      KC_DB_URL_HOST: db
+      KC_DB_URL_PORT: 5432
+    depends_on:
+      db:
+        condition: service_healthy
+    command: start-dev
+
   db:
     image: docker.io/postgres:15.7
     ports:
@@ -25,42 +62,6 @@ services:
       timeout: 3s
       retries: 3
       start_period: 5s
-
-  auth:
-    image: docker.io/keycloak/keycloak:24.0
-    environment:
-      KEYCLOAK_ADMIN: admin
-      KEYCLOAK_ADMIN_PASSWORD: admin
-      KC_DB: postgres
-      KC_DB_PASSWORD: "${DB_PASSWORD}"
-      KC_DB_USERNAME: "${DB_USER}"
-      KC_DB_URL_DATABASE: "${DB_NAME}"
-      KC_DB_URL_HOST: db
-      KC_DB_URL_PORT: 5432
-    ports:
-      - "8080:8080"
-    depends_on:
-      db:
-        condition: service_healthy
-    command: start-dev
-
-  app:
-    build:
-      context: ./app
-      target: dev
-    ports:
-      - "8000:3000"
-    volumes:
-      - type: bind
-        source: ./app/src
-        target: /opt/app/src
-    env_file:
-      - .env
-    depends_on:
-      db:
-        condition: service_healthy
-      auth:
-        condition: service_started
 
 volumes:
   db-data:

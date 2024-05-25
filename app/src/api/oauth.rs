@@ -10,7 +10,7 @@ use serde::Deserialize;
 use crate::services::auth::{exchange_code_for_token, TokenParams};
 use crate::state::AppState;
 
-pub fn create_auth_router() -> Router<AppState> {
+pub fn create_oauth_router() -> Router<AppState> {
     Router::new().route("/callback", get(callback))
 }
 
@@ -30,7 +30,7 @@ async fn callback(
         redirect_uri: &state.config.auth_redirect_uri,
     };
     let token_result = exchange_code_for_token(
-        &state.config.auth_service_private_url,
+        &state.config.auth_service_internal_url,
         &state.config.auth_realm,
         token_params,
         &state.http_client,
