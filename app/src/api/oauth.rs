@@ -7,9 +7,12 @@ use axum::{
 };
 use axum_extra::extract::cookie::{Cookie, CookieJar, SameSite};
 use serde::Deserialize;
+use time::Duration;
 
 use crate::services::auth::{exchange_code_for_token, TokenParams};
 use crate::state::AppState;
+
+const TOKEN_COOKIES_MAX_AGE_DAYS: i64 = 7;
 
 pub fn create_oauth_router() -> Router<AppState> {
     Router::new().route("/callback", get(callback))
@@ -40,22 +43,27 @@ async fn callback(
     .await;
     match token_response {
         Ok(value) => {
-            let access_token_cookie = Cookie::build(("access_token", value.access_token))
-                .path("/")
-                .secure(true)
-                .http_only(true)
-                .same_site(SameSite::Lax);
-            let refresh_token_cookie = Cookie::build(("refresh_token", value.refresh_token))
-                .path("/")
-                .secure(true)
-                .http_only(true)
-                .same_site(SameSite::Lax);
-            let jar = jar.add(access_token_cookie).add(refresh_token_cookie);
-            return (jar, Redirect::to("/protected")).into_response();
+            let access_token_cookie = build_token_cookie("access_token", value.access_token);
+            let refresh_token_cookie = build_token_cookie("refresh_token", value.refresh_token);
+            return (
+                jar.add(access_token_cookie).add(refresh_token_cookie),
+                Redirect::to("/protected"),
+            )
+                .into_response();
         }
         Err(e) => {
             tracing::error!("Error when exchanging code for token: {}", e);
             return (StatusCode::BAD_REQUEST, "Couldn't exchange code for token").into_response();
         }
     }
+}
+
+fn build_token_cookie(key: &str, value: String) -> Cookie {
+    Cookie::build((key, value))
+        .path("/")
+        .secure(true)
+        .http_only(true)
+        .same_site(SameSite::Strict)
+        .max_age(Duration::days(TOKEN_COOKIES_MAX_AGE_DAYS))
+        .build()
 }
