@@ -5,6 +5,7 @@ use axum::{
     routing::get,
     Router,
 };
+use axum_extra::extract::cookie::{Cookie, CookieJar, SameSite};
 use serde::Deserialize;
 
 use crate::services::auth::{exchange_code_for_token, TokenParams};
@@ -22,6 +23,7 @@ struct AuthResponse {
 async fn callback(
     Query(auth_response): Query<AuthResponse>,
     State(state): State<AppState>,
+    jar: CookieJar,
 ) -> impl IntoResponse {
     let token_params = TokenParams {
         code: &auth_response.code,
@@ -29,15 +31,28 @@ async fn callback(
         client_secret: &state.config.auth_client_secret,
         redirect_uri: &state.config.auth_redirect_uri,
     };
-    let token_result = exchange_code_for_token(
+    let token_response = exchange_code_for_token(
         &state.config.auth_service_internal_url,
         &state.config.auth_realm,
         token_params,
         &state.http_client,
     )
     .await;
-    match token_result {
-        Ok((_access_token, _refresh_token)) => return Redirect::to("/protected").into_response(),
+    match token_response {
+        Ok(value) => {
+            let access_token_cookie = Cookie::build(("access_token", value.access_token))
+                .path("/")
+                .secure(true)
+                .http_only(true)
+                .same_site(SameSite::Lax);
+            let refresh_token_cookie = Cookie::build(("refresh_token", value.refresh_token))
+                .path("/")
+                .secure(true)
+                .http_only(true)
+                .same_site(SameSite::Lax);
+            let jar = jar.add(access_token_cookie).add(refresh_token_cookie);
+            return (jar, Redirect::to("/protected")).into_response();
+        }
         Err(e) => {
             tracing::error!("Error when exchanging code for token: {}", e);
             return (StatusCode::BAD_REQUEST, "Couldn't exchange code for token").into_response();

@@ -13,9 +13,9 @@ pub struct TokenParams<'a> {
 }
 
 #[derive(Deserialize)]
-struct TokenResponse {
-    access_token: String,
-    refresh_token: String,
+pub struct TokenResponse {
+    pub access_token: String,
+    pub refresh_token: String,
 }
 
 pub async fn exchange_code_for_token(
@@ -23,7 +23,7 @@ pub async fn exchange_code_for_token(
     realm: &str,
     token_params: TokenParams<'_>,
     http_client: &Client,
-) -> Result<(String, String), Error> {
+) -> Result<TokenResponse, Error> {
     let token_url = format!(
         "{base_url}/realms/{realm}/protocol/openid-connect/token",
         base_url = base_url,
@@ -44,6 +44,6 @@ pub async fn exchange_code_for_token(
         .await?
         .error_for_status()?;
 
-    let res_json = res.json::<TokenResponse>().await?;
-    return Ok((res_json.access_token, res_json.refresh_token));
+    let token_response = res.json::<TokenResponse>().await?;
+    return Ok(token_response);
 }
