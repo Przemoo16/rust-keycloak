@@ -66,11 +66,12 @@ pub async fn exchange_code_for_token(
             res.error_for_status().err().unwrap(),
         ));
     }
+    res.error_for_status_ref()
+        .map_err(TokenExchangeError::InvalidResponseError)?;
     let token_response = res
         .json::<TokenResponse>()
         .await
         .map_err(TokenExchangeError::InvalidResponseError)?;
-
     return Ok(token_response);
 }
 
@@ -90,7 +91,7 @@ pub struct JWKResponse {
 pub enum RetrievingJWKError {
     SendingRequestError(Error),
     InvalidResponseError(Error),
-    JWKNotFoundError,
+    JWKNotFoundError(String),
 }
 
 impl fmt::Display for RetrievingJWKError {
@@ -98,7 +99,9 @@ impl fmt::Display for RetrievingJWKError {
         match self {
             RetrievingJWKError::SendingRequestError(err)
             | RetrievingJWKError::InvalidResponseError(err) => write!(f, "{}", err),
-            RetrievingJWKError::JWKNotFoundError => write!(f, "JWK not found"),
+            RetrievingJWKError::JWKNotFoundError(kid) => {
+                write!(f, "Not found JWK with the associated kid {}", kid)
+            }
         }
     }
 }
@@ -119,7 +122,9 @@ pub async fn get_jwk(
         .get(&certificate_url)
         .send()
         .await
-        .map_err(RetrievingJWKError::SendingRequestError)?;
+        .map_err(RetrievingJWKError::SendingRequestError)?
+        .error_for_status()
+        .map_err(RetrievingJWKError::InvalidResponseError)?;
 
     let jwks = res
         .json::<JWKSResponse>()
@@ -129,6 +134,6 @@ pub async fn get_jwk(
         .keys
         .into_iter()
         .find(|key| key.kid == kid)
-        .ok_or(RetrievingJWKError::JWKNotFoundError);
+        .ok_or_else(|| RetrievingJWKError::JWKNotFoundError(kid.to_string()));
     return jwk;
 }

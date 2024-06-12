@@ -51,14 +51,14 @@ async fn callback(
             )
                 .into_response();
         }
-        Err(e) => match e {
+        Err(err) => match err {
             TokenExchangeError::InvalidRequestError(_) => {
-                tracing::info!("Invalid request when exchanging code for token: {}", e);
+                tracing::info!("Invalid request when exchanging code for token: {}", err);
                 return (StatusCode::BAD_REQUEST, "Couldn't exchange code for token")
                     .into_response();
             }
             _ => {
-                tracing::error!("Error when exchanging code for token: {}", e);
+                tracing::error!("Error when exchanging code for token: {}", err);
                 return (
                     StatusCode::INTERNAL_SERVER_ERROR,
                     "Couldn't exchange code for token",
