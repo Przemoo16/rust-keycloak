@@ -1,5 +1,6 @@
 use reqwest::{Client, Error};
 use serde::Deserialize;
+use std::fmt;
 
 pub fn get_auth_url(base_url: &str, realm: &str, client_id: &str, redirect_uri: &str) -> String {
     format!("{base_url}/realms/{realm}/protocol/openid-connect/auth?response_type=code&scope=openid&client_id={client_id}&redirect_uri={redirect_uri}", base_url=base_url, realm=realm, client_id=client_id, redirect_uri=redirect_uri)
@@ -18,12 +19,28 @@ pub struct TokenResponse {
     pub refresh_token: String,
 }
 
+pub enum TokenExchangeError {
+    SendingRequestError(Error),
+    InvalidRequestError(Error),
+    InvalidResponseError(Error),
+}
+
+impl fmt::Display for TokenExchangeError {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        match self {
+            TokenExchangeError::SendingRequestError(err)
+            | TokenExchangeError::InvalidRequestError(err)
+            | TokenExchangeError::InvalidResponseError(err) => write!(f, "{}", err),
+        }
+    }
+}
+
 pub async fn exchange_code_for_token(
     base_url: &str,
     realm: &str,
     token_params: TokenParams<'_>,
     http_client: &Client,
-) -> Result<TokenResponse, Error> {
+) -> Result<TokenResponse, TokenExchangeError> {
     let token_url = format!(
         "{base_url}/realms/{realm}/protocol/openid-connect/token",
         base_url = base_url,
@@ -41,9 +58,18 @@ pub async fn exchange_code_for_token(
         .post(&token_url)
         .form(&params)
         .send()
-        .await?
-        .error_for_status()?;
+        .await
+        .map_err(TokenExchangeError::SendingRequestError)?;
 
-    let token_response = res.json::<TokenResponse>().await?;
+    if res.status().is_client_error() {
+        return Err(TokenExchangeError::InvalidRequestError(
+            res.error_for_status().err().unwrap(),
+        ));
+    }
+
+    let token_response = res
+        .json::<TokenResponse>()
+        .await
+        .map_err(TokenExchangeError::InvalidResponseError)?;
     return Ok(token_response);
 }

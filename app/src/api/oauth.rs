@@ -9,7 +9,7 @@ use axum_extra::extract::cookie::{Cookie, CookieJar, SameSite};
 use serde::Deserialize;
 use time::Duration;
 
-use crate::services::auth::{exchange_code_for_token, TokenParams};
+use crate::services::auth::{exchange_code_for_token, TokenExchangeError, TokenParams};
 use crate::state::AppState;
 
 const TOKEN_COOKIES_MAX_AGE_DAYS: i64 = 7;
@@ -51,10 +51,21 @@ async fn callback(
             )
                 .into_response();
         }
-        Err(e) => {
-            tracing::error!("Error when exchanging code for token: {}", e);
-            return (StatusCode::BAD_REQUEST, "Couldn't exchange code for token").into_response();
-        }
+        Err(e) => match e {
+            TokenExchangeError::InvalidRequestError(_) => {
+                tracing::info!("Invalid request when exchanging code for token: {}", e);
+                return (StatusCode::BAD_REQUEST, "Couldn't exchange code for token")
+                    .into_response();
+            }
+            _ => {
+                tracing::error!("Error when exchanging code for token: {}", e);
+                return (
+                    StatusCode::INTERNAL_SERVER_ERROR,
+                    "Couldn't exchange code for token",
+                )
+                    .into_response();
+            }
+        },
     }
 }
 
