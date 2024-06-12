@@ -1,5 +1,6 @@
 use axum::{extract::State, response::Html, routing::get, Router};
 
+use crate::api::extractors::Claims;
 use crate::services::auth::get_auth_url;
 use crate::state::AppState;
 
@@ -25,7 +26,6 @@ async fn homepage(State(state): State<AppState>) -> Html<String> {
     ))
 }
 
-// TODO: Implement protection
-async fn protected() -> Html<&'static str> {
+async fn protected(_claims: Claims) -> Html<&'static str> {
     Html("<p>Protected content</p>")
 }

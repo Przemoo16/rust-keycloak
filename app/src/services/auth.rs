@@ -66,10 +66,69 @@ pub async fn exchange_code_for_token(
             res.error_for_status().err().unwrap(),
         ));
     }
-
     let token_response = res
         .json::<TokenResponse>()
         .await
         .map_err(TokenExchangeError::InvalidResponseError)?;
+
     return Ok(token_response);
+}
+
+#[derive(Deserialize)]
+pub struct JWKSResponse {
+    keys: Vec<JWKResponse>,
+}
+
+#[derive(Deserialize)]
+pub struct JWKResponse {
+    pub kid: String,
+    pub alg: String,
+    pub e: String,
+    pub n: String,
+}
+
+pub enum RetrievingJWKError {
+    SendingRequestError(Error),
+    InvalidResponseError(Error),
+    JWKNotFoundError,
+}
+
+impl fmt::Display for RetrievingJWKError {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        match self {
+            RetrievingJWKError::SendingRequestError(err)
+            | RetrievingJWKError::InvalidResponseError(err) => write!(f, "{}", err),
+            RetrievingJWKError::JWKNotFoundError => write!(f, "JWK not found"),
+        }
+    }
+}
+
+pub async fn get_jwk(
+    base_url: &str,
+    realm: &str,
+    kid: &str,
+    http_client: &Client,
+) -> Result<JWKResponse, RetrievingJWKError> {
+    let certificate_url = format!(
+        "{base_url}/realms/{realm}/protocol/openid-connect/certs",
+        base_url = base_url,
+        realm = realm
+    );
+
+    let res = http_client
+        .get(&certificate_url)
+        .send()
+        .await
+        .map_err(RetrievingJWKError::SendingRequestError)?;
+
+    let jwks = res
+        .json::<JWKSResponse>()
+        .await
+        .map_err(RetrievingJWKError::InvalidResponseError)?;
+    let jwk = jwks
+        .keys
+        .into_iter()
+        .find(|key| key.kid == kid)
+        .ok_or(RetrievingJWKError::JWKNotFoundError);
+    return jwk;
 }

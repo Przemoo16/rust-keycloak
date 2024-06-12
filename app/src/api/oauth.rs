@@ -18,7 +18,7 @@ pub fn create_oauth_router() -> Router<AppState> {
     Router::new().route("/callback", get(callback))
 }
 
-#[derive(Debug, Deserialize)]
+#[derive(Deserialize)]
 struct AuthResponse {
     code: String,
 }
