@@ -54,7 +54,8 @@ async fn callback(
         Err(err) => match err {
             ObtainTokensError::InvalidRequestError(_) => {
                 tracing::info!("Invalid request when obtaining tokens: {}", err);
-                return (StatusCode::BAD_REQUEST, "Couldn't obtain tokens").into_response();
+                return (StatusCode::BAD_REQUEST, "Invalid request to obtain tokens")
+                    .into_response();
             }
             _ => {
                 tracing::error!("Error when obtaining tokens: {}", err);
