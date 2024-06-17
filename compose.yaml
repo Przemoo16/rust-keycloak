@@ -1,4 +1,17 @@
 services:
+  proxy:
+    build:
+      context: ./proxy
+    ports:
+      - "8000:80"
+    volumes:
+      - type: bind
+        source: ./proxy/nginx.conf.template
+        target: /opt/nginx/nginx.conf.template
+    depends_on:
+      - app
+      - auth
+
   app:
     build:
       context: ./app
@@ -7,8 +20,6 @@ services:
       - type: bind
         source: ./app/src
         target: /opt/app/src
-    ports:
-      - "8000:80"
     env_file:
       - .env
     depends_on:
@@ -18,12 +29,12 @@ services:
         condition: service_started
 
   auth:
-    image: docker.io/keycloak/keycloak:24.0
-    ports:
-      - "8080:80"
+    image: docker.io/keycloak/keycloak:25.0
     environment:
       KEYCLOAK_ADMIN: admin
       KEYCLOAK_ADMIN_PASSWORD: admin
+      KC_HOSTNAME: "${AUTH_SERVICE_PUBLIC_URL}"
+      KC_HTTP_RELATIVE_PATH: /auth
       KC_HTTP_PORT: 80
       KC_DB: postgres
       KC_DB_PASSWORD: "${DB_PASSWORD}"
