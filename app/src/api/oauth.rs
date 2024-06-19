@@ -45,21 +45,20 @@ async fn callback(
         Ok(value) => {
             let access_token_cookie = build_token_cookie("access_token", value.access_token);
             let refresh_token_cookie = build_token_cookie("refresh_token", value.refresh_token);
-            return (
+            (
                 jar.add(access_token_cookie).add(refresh_token_cookie),
                 Redirect::to("/protected"),
             )
-                .into_response();
+                .into_response()
         }
         Err(err) => match err {
             ObtainTokensError::InvalidRequestError(_) => {
                 tracing::info!("Invalid request when obtaining tokens: {}", err);
-                return (StatusCode::BAD_REQUEST, "Invalid request to obtain tokens")
-                    .into_response();
+                (StatusCode::BAD_REQUEST, "Invalid request to obtain tokens").into_response()
             }
             _ => {
                 tracing::error!("Error when obtaining tokens: {}", err);
-                return StatusCode::INTERNAL_SERVER_ERROR.into_response();
+                StatusCode::INTERNAL_SERVER_ERROR.into_response()
             }
         },
     }

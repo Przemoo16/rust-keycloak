@@ -30,7 +30,7 @@ pub enum AuthError {
 
 impl IntoResponse for AuthError {
     fn into_response(self) -> Response {
-        let response = match self {
+        match self {
             AuthError::InvalidCredentials(message) => {
                 tracing::info!(message);
                 let jar = CookieJar::new();
@@ -46,8 +46,7 @@ impl IntoResponse for AuthError {
                 tracing::error!(message);
                 StatusCode::INTERNAL_SERVER_ERROR.into_response()
             }
-        };
-        return response;
+        }
     }
 }
 
@@ -111,7 +110,7 @@ where
                             err
                         ))
                     })?;
-                    return Ok(access_token_data.claims);
+                    Ok(access_token_data.claims)
                 }
                 _ => Err(AuthError::InvalidCredentials(format!(
                     "Error when decoding access token: {}",
@@ -126,7 +125,7 @@ fn extract_token_from_cookies<'a>(jar: &'a CookieJar, name: &str) -> Result<&'a 
     let cookie = jar
         .get(name)
         .ok_or_else(|| AuthError::InvalidCredentials(format!("Missing '{}' in cookies", name)))?;
-    return Ok(cookie.value());
+    Ok(cookie.value())
 }
 
 async fn get_access_token_decoder<'a>(
@@ -156,7 +155,7 @@ async fn get_access_token_decoder<'a>(
     };
     let mut validation = Validation::new(algorithm);
     validation.set_audience(&[AUTH_AUDIENCE]);
-    return Ok(move || decode::<Claims>(token, &decoding_key, &validation));
+    Ok(move || decode::<Claims>(token, &decoding_key, &validation))
 }
 
 fn build_deletion_cookie(name: &str) -> Cookie {

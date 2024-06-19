@@ -72,7 +72,7 @@ pub async fn obtain_tokens(
         .json::<TokensResponse>()
         .await
         .map_err(ObtainTokensError::InvalidResponseError)?;
-    return Ok(tokens);
+    Ok(tokens)
 }
 
 #[derive(Deserialize)]
@@ -130,12 +130,10 @@ pub async fn get_jwk(
         .json::<JWKSResponse>()
         .await
         .map_err(RetrievingJWKError::InvalidResponseError)?;
-    let jwk = jwks
-        .keys
+    jwks.keys
         .into_iter()
         .find(|key| key.kid == kid)
-        .ok_or_else(|| RetrievingJWKError::JWKNotFoundError(kid.to_string()));
-    return jwk;
+        .ok_or_else(|| RetrievingJWKError::JWKNotFoundError(kid.to_string()))
 }
 
 pub struct RefreshTokenParams<'a> {
@@ -196,5 +194,5 @@ pub async fn refresh_token(
         .json::<TokensResponse>()
         .await
         .map_err(RefreshTokenError::InvalidResponseError)?;
-    return Ok(tokens);
+    Ok(tokens)
 }
