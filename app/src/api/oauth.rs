@@ -59,15 +59,14 @@ async fn callback(
             }
             _ => {
                 tracing::error!("Error when obtaining tokens: {}", err);
-                return (StatusCode::INTERNAL_SERVER_ERROR, "Couldn't obtain tokens")
-                    .into_response();
+                return StatusCode::INTERNAL_SERVER_ERROR.into_response();
             }
         },
     }
 }
 
-fn build_token_cookie(key: &str, value: String) -> Cookie {
-    Cookie::build((key, value))
+fn build_token_cookie(name: &str, value: String) -> Cookie {
+    Cookie::build((name, value))
         .path("/")
         .secure(true)
         .http_only(true)
